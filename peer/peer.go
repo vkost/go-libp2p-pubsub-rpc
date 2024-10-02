@@ -4,28 +4,28 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	golog "github.com/textileio/go-log/v2"
 	"os"
 	"path/filepath"
 	"time"
 
 	ipfslite "github.com/hsanjuan/ipfs-lite"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
-	ipfsconfig "github.com/ipfs/go-ipfs-config"
 	format "github.com/ipfs/go-ipld-format"
+	ipfsconfig "github.com/ipfs/kubo/config"
 	"github.com/libp2p/go-libp2p"
-	connmgr "github.com/libp2p/go-libp2p-connmgr"
-	cconnmgr "github.com/libp2p/go-libp2p-core/connmgr"
-	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-peerstore/pstoreds"
 	ps "github.com/libp2p/go-libp2p-pubsub"
+	cconnmgr "github.com/libp2p/go-libp2p/core/connmgr"
+	"github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/peer"
+	pstoreds "github.com/libp2p/go-libp2p/p2p/host/peerstore/pstoreds"
+	vkconnmgr "github.com/libp2p/go-libp2p/p2p/net/connmgr"
 	"github.com/multiformats/go-multiaddr"
 	badger "github.com/textileio/go-ds-badger3"
 	rpc "github.com/textileio/go-libp2p-pubsub-rpc"
 	"github.com/textileio/go-libp2p-pubsub-rpc/finalizer"
 	"github.com/textileio/go-libp2p-pubsub-rpc/peer/mdns"
-	golog "github.com/textileio/go-log/v2"
 )
 
 var log = golog.Logger("psrpc/peer")
@@ -50,7 +50,7 @@ func setDefaults(conf *Config) {
 		conf.ListenMultiaddrs = []string{"/ip4/0.0.0.0/tcp/0"}
 	}
 	if conf.ConnManager == nil {
-		cm, err := connmgr.NewConnManager(256, 512, connmgr.WithGracePeriod(time.Second*120))
+		cm, err := vkconnmgr.NewConnManager(256, 512, vkconnmgr.WithGracePeriod(time.Second*120))
 		if err != nil {
 			panic(err)
 		}
@@ -118,6 +118,7 @@ func New(conf Config) (*Peer, error) {
 		return nil, fin.Cleanupf("creating repo: %v", err)
 	}
 	fin.Add(dstore)
+
 	pstore, err := pstoreds.NewPeerstore(ctx, dstore, pstoreds.DefaultOpts())
 	if err != nil {
 		return nil, fin.Cleanupf("creating peerstore: %v", err)
@@ -133,7 +134,7 @@ func New(conf Config) (*Peer, error) {
 	fin.Add(lhost, dht)
 
 	// Create ipfslite peer
-	lpeer, err := ipfslite.New(ctx, dstore, lhost, dht, nil)
+	lpeer, err := ipfslite.New(ctx, dstore, nil, lhost, dht, nil)
 	if err != nil {
 		return nil, fin.Cleanupf("creating ipfslite peer", err)
 	}
