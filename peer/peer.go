@@ -10,7 +10,7 @@ import (
 	"time"
 
 	ipfslite "github.com/hsanjuan/ipfs-lite"
-	blockstore "github.com/ipfs/go-ipfs-blockstore"
+	bblockstore "github.com/ipfs/boxo/blockstore"
 	format "github.com/ipfs/go-ipld-format"
 	ipfsconfig "github.com/ipfs/kubo/config"
 	"github.com/libp2p/go-libp2p"
@@ -217,7 +217,7 @@ func (p *Peer) DAGService() format.DAGService {
 }
 
 // BlockStore returns the underlying format.DAGService.
-func (p *Peer) BlockStore() blockstore.Blockstore {
+func (p *Peer) BlockStore() bblockstore.Blockstore {
 	return p.peer.BlockStore()
 }
 
